@@ -163,6 +163,9 @@ function fecharConta() {
   document.getElementById('gorjeta-fechamento').textContent = formatarMoeda(gorjeta);
   document.getElementById('total-com-gorjeta').textContent = formatarMoeda(totalComGorjeta);
 
+  // Inicializa o cálculo por pessoa
+  calcularPorPessoa();
+
   document.getElementById('tela-comanda').classList.add('d-none');
   document.getElementById('tela-fechamento').classList.remove('d-none');
 }
@@ -173,4 +176,87 @@ function voltarComanda() {
   document.getElementById('tela-fechamento').classList.add('d-none');
   document.getElementById('tela-comanda').classList.remove('d-none');
   atualizarComanda();
+}
+
+/**
+ * Calcula e exibe o valor por pessoa com base no total com gorjeta
+ */
+function calcularPorPessoa() {
+  const inputPessoas = document.getElementById('input-pessoas');
+  const numPessoas = parseInt(inputPessoas.value) || 1;
+
+  // Obter o total com gorjeta (já formatado como texto, então vamos reusar o cálculo)
+  const subtotal = comanda.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+  const totalComGorjeta = subtotal * 1.10; // subtotal + 10%
+
+  const valorPorPessoa = totalComGorjeta / numPessoas;
+
+  document.getElementById('valor-por-pessoa').textContent = formatarMoeda(valorPorPessoa);
+}
+/**
+ * Imprime a comanda atual (para enviar à cozinha)
+ */
+function imprimirComanda() {
+  const numeroMesa = document.getElementById('input-mesa').value.trim();
+  if (!numeroMesa || isNaN(numeroMesa) || Number(numeroMesa) <= 0) {
+    alert('Informe o número da mesa antes de imprimir.');
+    return;
+  }
+
+  // Cria um conteúdo de impressão personalizado
+  let conteudoImpressao = `
+    <html>
+    <head>
+      <title>Comanda - Nordestô</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h2 { color: #D4AF37; text-align: center; }
+        .item { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed #ccc; }
+        .obs { color: #555; font-style: italic; margin-top: 4px; font-size: 0.9em; }
+        .total { font-weight: bold; margin-top: 15px; font-size: 1.2em; }
+      </style>
+    </head>
+    <body>
+      <h2>COMANDA COZINHA</h2>
+      <p><strong>Mesa:</strong> ${numeroMesa}</p>
+      <p><strong>Data:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+      <hr>
+  `;
+
+  // Adiciona os itens
+  comanda.forEach(item => {
+    const totalItem = (item.preco * item.quantidade).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+    conteudoImpressao += `
+      <div class="item">
+        <div><strong>${item.quantidade}x ${item.nome}</strong> — ${totalItem}</div>
+        ${item.observacao ? `<div class="obs">Obs: ${item.observacao}</div>` : ''}
+      </div>
+    `;
+  });
+
+  conteudoImpressao += `
+      <div class="total">
+        Total de itens: ${comanda.reduce((acc, item) => acc + item.quantidade, 0)}
+      </div>
+      <p style="margin-top: 30px; font-size: 0.9em; color: #888;">
+        Comanda gerada pelo sistema Nordestô • Não é um cupom fiscal
+      </p>
+    </body>
+    </html>
+  `;
+
+  // Abre em nova janela e imprime
+  const janelaImpressao = window.open('', '_blank');
+  janelaImpressao.document.write(conteudoImpressao);
+  janelaImpressao.document.close();
+  janelaImpressao.focus();
+
+  // Opcional: imprimir automaticamente (pode ser bloqueado em alguns navegadores)
+  setTimeout(() => {
+    janelaImpressao.print();
+    // janelaImpressao.close(); // não fecha automaticamente para permitir salvar como PDF
+  }, 500);
 }
